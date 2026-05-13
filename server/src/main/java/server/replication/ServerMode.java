@@ -1,4 +1,4 @@
-package common.replication;
+package server.replication;
 
 public enum ServerMode {
     MASTER,

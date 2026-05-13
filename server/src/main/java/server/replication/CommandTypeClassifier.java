@@ -13,7 +13,9 @@ public class CommandTypeClassifier {
             CommandType.MIN_BY_NAME,
             CommandType.FILTER_GREATER_THAN_TYPE,
             CommandType.PRINT_UNIQUE_ANNUAL_TURNOVER,
-            CommandType.HELP
+            CommandType.HELP,
+            CommandType.LOGIN,
+            CommandType.REGISTER
     );
 
     private static final Set<CommandType> WRITE_COMMANDS = EnumSet.of(

@@ -12,6 +12,9 @@ public class Request implements Serializable {
     private Long id;
     private Organization organization;
     private OrganizationType organizationType;
+    private String login;
+    private String password;
+    private Long userId;
 
     public Request(CommandType commandType) {
         this.commandType = commandType;
@@ -51,5 +54,29 @@ public class Request implements Serializable {
 
     public void setOrganizationType(OrganizationType organizationType) {
         this.organizationType = organizationType;
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

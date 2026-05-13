@@ -3,9 +3,6 @@ package common.models;
 import java.io.Serializable;
 import java.util.Date;
 
-/**
- * Организация (элемент коллекции).
- */
 public class Organization implements Comparable<Organization>, Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -17,12 +14,8 @@ public class Organization implements Comparable<Organization>, Serializable {
     private int annualTurnover;
     private OrganizationType type;
     private Address officialAddress;
+    private Long ownerId;
 
-    private static long nextId = 1;
-
-    /**
-     * Обычный конструктор для создания нового объекта.
-     */
     public Organization(
             String name,
             Coordinates coordinates,
@@ -30,12 +23,9 @@ public class Organization implements Comparable<Organization>, Serializable {
             OrganizationType type,
             Address officialAddress
     ) {
-        this(generateId(), name, coordinates, new Date(), annualTurnover, type, officialAddress);
+        this(null, name, coordinates, new Date(), annualTurnover, type, officialAddress, null);
     }
 
-    /**
-     * Конструктор для восстановления/обновления объекта с сохранением id и creationDate.
-     */
     public Organization(
             Long id,
             String name,
@@ -43,11 +33,9 @@ public class Organization implements Comparable<Organization>, Serializable {
             Date creationDate,
             int annualTurnover,
             OrganizationType type,
-            Address officialAddress
+            Address officialAddress,
+            Long ownerId
     ) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("Id must be greater than 0");
-        }
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("Name cannot be null or empty");
         }
@@ -71,14 +59,7 @@ public class Organization implements Comparable<Organization>, Serializable {
         this.annualTurnover = annualTurnover;
         this.type = type;
         this.officialAddress = officialAddress;
-    }
-
-    private static long generateId() {
-        return nextId++;
-    }
-
-    public static void setNextId(long id) {
-        nextId = id;
+        this.ownerId = ownerId;
     }
 
     public Long getId() {
@@ -109,6 +90,14 @@ public class Organization implements Comparable<Organization>, Serializable {
         return officialAddress;
     }
 
+    public Long getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(Long ownerId) {
+        this.ownerId = ownerId;
+    }
+
     @Override
     public int compareTo(Organization other) {
         return Integer.compare(this.annualTurnover, other.annualTurnover);
@@ -124,6 +113,7 @@ public class Organization implements Comparable<Organization>, Serializable {
                 ", annualTurnover=" + annualTurnover +
                 ", type=" + type +
                 ", officialAddress=" + officialAddress +
+                ", ownerId=" + ownerId +
                 '}';
     }
 }

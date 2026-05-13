@@ -1,8 +1,11 @@
 package client.connection;
 
+import client.auth.AuthManager;
 import client.commands.ExecuteScriptCommand;
 import client.commands.ExitCommand;
 import client.commands.HistoryCommand;
+import client.commands.LoginCommand;
+import client.commands.RegisterCommand;
 import client.managers.ClientCommandManager;
 import client.managers.InputManager;
 import common.config.AppConfig;
@@ -29,10 +32,47 @@ public class Client {
         clientCommandManager.registerCommand(new HistoryCommand(clientCommandManager));
         clientCommandManager.registerCommand(new ExecuteScriptCommand(this));
         clientCommandManager.registerCommand(new ExitCommand());
+
+        clientCommandManager.registerCommand(new LoginCommand((login, password) -> {
+            Request request = new Request(common.network.CommandType.LOGIN);
+            request.setLogin(login);
+            request.setPassword(password);
+            Response response = udpClient.sendAndReceive(request);
+            return response.isSuccess();
+        }));
+
+        clientCommandManager.registerCommand(new RegisterCommand((login, password) -> {
+            Request request = new Request(common.network.CommandType.REGISTER);
+            request.setLogin(login);
+            request.setPassword(password);
+            Response response = udpClient.sendAndReceive(request);
+            return response.isSuccess();
+        }));
     }
 
     public void run() {
-        System.out.println("Welcome! Type commands:");
+        System.out.println("Welcome! You must login or register to continue.");
+        while (!AuthManager.isAuthenticated()) {
+            String inputLine = InputManager.readLine("> ");
+            if (inputLine == null) return;
+            inputLine = inputLine.trim();
+            if (inputLine.isEmpty()) continue;
+
+            String commandName = inputLine.split("\\s+", 2)[0];
+
+            if (commandName.equals("exit")) {
+                System.out.println("Exiting program...");
+                System.exit(0);
+            }
+
+            if (commandName.equals("login") || commandName.equals("register")) {
+                clientCommandManager.executeCommand(inputLine);
+            } else {
+                System.out.println("You must login or register first.");
+            }
+        }
+
+        System.out.println("Type commands (help for list):");
         while (true) {
             String inputLine = InputManager.readLine("> ");
             if (inputLine == null) break;
@@ -49,6 +89,11 @@ public class Client {
 
         if (commandName.equals("help")) {
             showHelp();
+            return;
+        }
+
+        if (commandName.equals("login") || commandName.equals("register")) {
+            System.out.println("Already authenticated.");
             return;
         }
 

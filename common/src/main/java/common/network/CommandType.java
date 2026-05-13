@@ -12,6 +12,7 @@ public enum CommandType {
     FILTER_GREATER_THAN_TYPE,
     PRINT_UNIQUE_ANNUAL_TURNOVER,
     REMOVE_LOWER,
-    HELP
-
+    HELP,
+    LOGIN,
+    REGISTER
 }

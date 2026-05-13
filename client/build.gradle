@@ -3,10 +3,15 @@ plugins {
 }
 
 group = 'org.example'
-version = '1.0-SNAPSHOT'
+version = ''
 
 repositories {
     mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
@@ -23,9 +28,7 @@ test {
 
 jar {
     manifest {
-        attributes(
-                'Main-Class': 'client.ClientMain'
-        )
+        attributes 'Main-Class': 'client.ClientMain'
     }
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }

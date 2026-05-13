@@ -2,16 +2,16 @@ package server.commands;
 
 import common.network.Request;
 import server.managers.CollectionManager;
-import server.managers.CollectionPersistenceManager;
+import server.managers.DatabaseCollectionManager;
 
 public class RemoveGreaterKeyCommand implements Command {
     private final CollectionManager collectionManager;
-    private final CollectionPersistenceManager persistenceManager;
+    private final DatabaseCollectionManager dbCollectionManager;
 
     public RemoveGreaterKeyCommand(CollectionManager collectionManager,
-                                   CollectionPersistenceManager persistenceManager) {
+                                   DatabaseCollectionManager dbCollectionManager) {
         this.collectionManager = collectionManager;
-        this.persistenceManager = persistenceManager;
+        this.dbCollectionManager = dbCollectionManager;
     }
 
     @Override
@@ -28,12 +28,18 @@ public class RemoveGreaterKeyCommand implements Command {
     public CommandResult execute(Request request) {
         try {
             Integer key = request.getKey();
+            Long userId = request.getUserId();
+
             if (key == null) return new CommandResult(false, "Reference key is required.");
+            if (userId == null) return new CommandResult(false, "User not authenticated.");
 
-            persistenceManager.logRemoveGreaterKey(key);
-            collectionManager.removeGreaterKey(key);
-
-            return new CommandResult(true, "Elements with greater key removed successfully.");
+            boolean success = dbCollectionManager.removeGreaterKey(key, userId);
+            if (success) {
+                collectionManager.removeGreaterKey(key, userId);
+                return new CommandResult(true, "Elements with greater key removed successfully.");
+            } else {
+                return new CommandResult(false, "No elements removed.");
+            }
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

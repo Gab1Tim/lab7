@@ -3,16 +3,16 @@ package server.commands;
 import common.models.Organization;
 import common.network.Request;
 import server.managers.CollectionManager;
-import server.managers.CollectionPersistenceManager;
+import server.managers.DatabaseCollectionManager;
 
 public class InsertCommand implements Command {
     private final CollectionManager collectionManager;
-    private final CollectionPersistenceManager persistenceManager;
+    private final DatabaseCollectionManager dbCollectionManager;
 
     public InsertCommand(CollectionManager collectionManager,
-                         CollectionPersistenceManager persistenceManager) {
+                         DatabaseCollectionManager dbCollectionManager) {
         this.collectionManager = collectionManager;
-        this.persistenceManager = persistenceManager;
+        this.dbCollectionManager = dbCollectionManager;
     }
 
     @Override
@@ -30,15 +30,19 @@ public class InsertCommand implements Command {
         try {
             Integer key = request.getKey();
             Organization organization = request.getOrganization();
+            Long userId = request.getUserId();
 
             if (key == null) return new CommandResult(false, "Key is required.");
             if (organization == null) return new CommandResult(false, "Organization is required.");
+            if (userId == null) return new CommandResult(false, "User not authenticated.");
 
-            collectionManager.insert(key, organization);
-            Organization inserted = collectionManager.getCollection().get(key);
-            persistenceManager.logInsert(key, inserted);
-
-            return new CommandResult(true, "Organization added successfully.");
+            Organization inserted = dbCollectionManager.insert(key, organization, userId);
+            if (inserted != null) {
+                collectionManager.insert(key, inserted);
+                return new CommandResult(true, "Organization added successfully.");
+            } else {
+                return new CommandResult(false, "Failed to insert organization.");
+            }
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

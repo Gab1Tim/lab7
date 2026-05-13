@@ -20,17 +20,9 @@ public class CollectionManager {
     public CollectionManager(LinkedHashMap<Integer, Organization> collections) {
         this.collections = (collections != null) ? collections : new LinkedHashMap<>();
         this.creationDate = LocalDateTime.now();
-
-        long maxId = this.collections.values().stream()
-                .map(Organization::getId)
-                .filter(id -> id != null)
-                .max(Long::compareTo)
-                .orElse(0L);
-
-        Organization.setNextId(maxId + 1);
     }
 
-    public void insert(Integer key, Organization organization) {
+    public synchronized void insert(Integer key, Organization organization) {
         if (key == null) {
             throw new IllegalArgumentException("Key cannot be null");
         }
@@ -41,18 +33,10 @@ public class CollectionManager {
             throw new IllegalArgumentException("Key already exists");
         }
 
-        Organization serverOrganization = new Organization(
-                organization.getName(),
-                organization.getCoordinates(),
-                organization.getAnnualTurnover(),
-                organization.getType(),
-                organization.getOfficialAddress()
-        );
-
-        collections.put(key, serverOrganization);
+        collections.put(key, organization);
     }
 
-    public void remove(Integer key) {
+    public synchronized void remove(Integer key) {
         if (key == null) throw new IllegalArgumentException("Key cannot be null");
         if (!collections.containsKey(key)) throw new IllegalArgumentException("Key does not exist");
 
@@ -63,11 +47,18 @@ public class CollectionManager {
         return collections.containsKey(key);
     }
 
-    public void clear() {
+    public synchronized void clear() {
         collections.clear();
     }
 
-    public void update(Long id, Organization newOrg) {
+    public synchronized void clearUser(Long userId) {
+        collections.entrySet().removeIf(entry ->
+                entry.getValue().getOwnerId() != null &&
+                        entry.getValue().getOwnerId().equals(userId)
+        );
+    }
+
+    public synchronized void update(Long id, Organization newOrg) {
         if (id == null) throw new IllegalArgumentException("Id cannot be null");
         if (newOrg == null) throw new IllegalArgumentException("Organization cannot be null");
 
@@ -87,13 +78,14 @@ public class CollectionManager {
                 oldOrg.getCreationDate(),
                 newOrg.getAnnualTurnover(),
                 newOrg.getType(),
-                newOrg.getOfficialAddress()
+                newOrg.getOfficialAddress(),
+                oldOrg.getOwnerId()
         );
 
         collections.put(keyToUpdate, updatedOrg);
     }
 
-    public void removeGreaterKey(Integer referenceKey) {
+    public synchronized void removeGreaterKey(Integer referenceKey) {
         if (referenceKey == null) {
             throw new IllegalArgumentException("Reference key cannot be null");
         }
@@ -101,13 +93,33 @@ public class CollectionManager {
         collections.entrySet().removeIf(e -> e.getKey() > referenceKey);
     }
 
-    public int removeLower(Organization reference) {
+    public synchronized void removeGreaterKey(Integer referenceKey, Long userId) {
+        collections.entrySet().removeIf(e ->
+                e.getKey() > referenceKey &&
+                        e.getValue().getOwnerId() != null &&
+                        e.getValue().getOwnerId().equals(userId)
+        );
+    }
+
+    public synchronized int removeLower(Organization reference) {
         if (reference == null) {
             throw new IllegalArgumentException("Reference organization cannot be null");
         }
 
         List<Integer> keysToRemove = collections.entrySet().stream()
                 .filter(entry -> entry.getValue().compareTo(reference) < 0)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        keysToRemove.forEach(collections::remove);
+        return keysToRemove.size();
+    }
+
+    public synchronized int removeLower(Organization reference, Long userId) {
+        List<Integer> keysToRemove = collections.entrySet().stream()
+                .filter(entry -> entry.getValue().compareTo(reference) < 0)
+                .filter(entry -> entry.getValue().getOwnerId() != null &&
+                        entry.getValue().getOwnerId().equals(userId))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
@@ -158,19 +170,11 @@ public class CollectionManager {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    public void replaceAll(LinkedHashMap<Integer, Organization> newCollection) {
+    public synchronized void replaceAll(LinkedHashMap<Integer, Organization> newCollection) {
         collections.clear();
 
         if (newCollection != null) {
             collections.putAll(newCollection);
         }
-
-        long maxId = collections.values().stream()
-                .map(Organization::getId)
-                .filter(id -> id != null)
-                .max(Long::compareTo)
-                .orElse(0L);
-
-        Organization.setNextId(maxId + 1);
     }
 }

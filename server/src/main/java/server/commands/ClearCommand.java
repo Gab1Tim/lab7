@@ -2,16 +2,16 @@ package server.commands;
 
 import common.network.Request;
 import server.managers.CollectionManager;
-import server.managers.CollectionPersistenceManager;
+import server.managers.DatabaseCollectionManager;
 
 public class ClearCommand implements Command {
     private final CollectionManager collectionManager;
-    private final CollectionPersistenceManager persistenceManager;
+    private final DatabaseCollectionManager dbCollectionManager;
 
     public ClearCommand(CollectionManager collectionManager,
-                        CollectionPersistenceManager persistenceManager) {
+                        DatabaseCollectionManager dbCollectionManager) {
         this.collectionManager = collectionManager;
-        this.persistenceManager = persistenceManager;
+        this.dbCollectionManager = dbCollectionManager;
     }
 
     @Override
@@ -21,15 +21,18 @@ public class ClearCommand implements Command {
 
     @Override
     public String getDescription() {
-        return "Clears the collection";
+        return "Clears all organizations owned by the user";
     }
 
     @Override
     public CommandResult execute(Request request) {
         try {
-            persistenceManager.logClear();
-            collectionManager.clear();
-            return new CommandResult(true, "Collection cleared successfully.");
+            Long userId = request.getUserId();
+            if (userId == null) return new CommandResult(false, "User not authenticated.");
+
+            int removed = dbCollectionManager.clear(userId);
+            collectionManager.clearUser(userId);
+            return new CommandResult(true, removed + " organization(s) removed.");
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

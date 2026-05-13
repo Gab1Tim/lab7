@@ -2,11 +2,10 @@ package server.connection;
 
 import common.network.Request;
 import common.network.Response;
-import server.managers.CommandManager;
 import server.commands.CommandResult;
+import server.managers.CommandManager;
 
 public class RequestHandler {
-
     private final CommandManager commandManager;
 
     public RequestHandler(CommandManager commandManager) {

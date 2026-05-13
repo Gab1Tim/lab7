@@ -3,16 +3,16 @@ package server.commands;
 import common.models.Organization;
 import common.network.Request;
 import server.managers.CollectionManager;
-import server.managers.CollectionPersistenceManager;
+import server.managers.DatabaseCollectionManager;
 
 public class RemoveLowerCommand implements Command {
     private final CollectionManager collectionManager;
-    private final CollectionPersistenceManager persistenceManager;
+    private final DatabaseCollectionManager dbCollectionManager;
 
     public RemoveLowerCommand(CollectionManager collectionManager,
-                              CollectionPersistenceManager persistenceManager) {
+                              DatabaseCollectionManager dbCollectionManager) {
         this.collectionManager = collectionManager;
-        this.persistenceManager = persistenceManager;
+        this.dbCollectionManager = dbCollectionManager;
     }
 
     @Override
@@ -29,11 +29,13 @@ public class RemoveLowerCommand implements Command {
     public CommandResult execute(Request request) {
         try {
             Organization reference = request.getOrganization();
+            Long userId = request.getUserId();
+
             if (reference == null) return new CommandResult(false, "Reference organization is required.");
+            if (userId == null) return new CommandResult(false, "User not authenticated.");
 
-            persistenceManager.logRemoveLower(reference);
-            int removed = collectionManager.removeLower(reference);
-
+            int removed = dbCollectionManager.removeLower(reference, userId);
+            collectionManager.removeLower(reference, userId);
             return new CommandResult(true, removed + " elements removed.");
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());

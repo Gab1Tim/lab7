@@ -3,16 +3,16 @@ package server.commands;
 import common.models.Organization;
 import common.network.Request;
 import server.managers.CollectionManager;
-import server.managers.CollectionPersistenceManager;
+import server.managers.DatabaseCollectionManager;
 
 public class UpdateCommand implements Command {
     private final CollectionManager collectionManager;
-    private final CollectionPersistenceManager persistenceManager;
+    private final DatabaseCollectionManager dbCollectionManager;
 
     public UpdateCommand(CollectionManager collectionManager,
-                         CollectionPersistenceManager persistenceManager) {
+                         DatabaseCollectionManager dbCollectionManager) {
         this.collectionManager = collectionManager;
-        this.persistenceManager = persistenceManager;
+        this.dbCollectionManager = dbCollectionManager;
     }
 
     @Override
@@ -30,20 +30,19 @@ public class UpdateCommand implements Command {
         try {
             Long id = request.getId();
             Organization organization = request.getOrganization();
+            Long userId = request.getUserId();
 
             if (id == null) return new CommandResult(false, "Id is required.");
             if (organization == null) return new CommandResult(false, "Organization is required.");
+            if (userId == null) return new CommandResult(false, "User not authenticated.");
 
-            collectionManager.update(id, organization);
-
-            Organization updated = collectionManager.getCollection().values().stream()
-                    .filter(org -> org.getId().equals(id))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Updated organization not found"));
-
-            persistenceManager.logUpdate(id, updated);
-
-            return new CommandResult(true, "Organization updated successfully.");
+            boolean success = dbCollectionManager.update(id, organization, userId);
+            if (success) {
+                collectionManager.update(id, organization);
+                return new CommandResult(true, "Organization updated successfully.");
+            } else {
+                return new CommandResult(false, "Update failed. Check id and ownership.");
+            }
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

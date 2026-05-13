@@ -1,33 +1,29 @@
 package server.replication;
 
+import common.network.CommandType;
 import common.network.Request;
 import common.network.Response;
-import common.replication.ServerMode;
-import common.replication.SyncMessage;
 import server.connection.RequestHandler;
-import server.managers.CollectionManager;
+import server.managers.UserManager;
 
 public class ServerPayloadDispatcher {
 
     private final RequestHandler requestHandler;
     private final ServerMode serverMode;
     private final CommandTypeClassifier classifier;
-    private final SlaveSyncService slaveSyncService;
-    private final ReplicationManager replicationManager;
-    private final CollectionManager collectionManager;
+    private final UserManager userManager;
+    private final ReplicationNotifier notifier;
 
     public ServerPayloadDispatcher(RequestHandler requestHandler,
                                    ServerMode serverMode,
                                    CommandTypeClassifier classifier,
-                                   SlaveSyncService slaveSyncService,
-                                   ReplicationManager replicationManager,
-                                   CollectionManager collectionManager) {
+                                   UserManager userManager,
+                                   ReplicationNotifier notifier) {
         this.requestHandler = requestHandler;
         this.serverMode = serverMode;
         this.classifier = classifier;
-        this.slaveSyncService = slaveSyncService;
-        this.replicationManager = replicationManager;
-        this.collectionManager = collectionManager;
+        this.userManager = userManager;
+        this.notifier = notifier;
     }
 
     public Response dispatch(Object payload) {
@@ -35,20 +31,29 @@ public class ServerPayloadDispatcher {
             return new Response(false, "Payload is null.");
         }
 
-        if (payload instanceof SyncMessage syncMessage) {
-            slaveSyncService.applySync(syncMessage);
-            return new Response(true, "Slave synchronized successfully.");
-        }
-
         if (!(payload instanceof Request request)) {
-            return new Response(false, "Unsupported payload type: " + payload.getClass().getName());
+            return new Response(false, "Unsupported payload type.");
         }
 
-        if (request.getCommandType() == null) {
+        CommandType commandType = request.getCommandType();
+        if (commandType == null) {
             return new Response(false, "Command type is null.");
         }
 
-        if (serverMode == ServerMode.SLAVE && classifier.isWrite(request.getCommandType())) {
+        if (commandType != CommandType.LOGIN && commandType != CommandType.REGISTER) {
+            String login = request.getLogin();
+            String password = request.getPassword();
+            if (login == null || password == null) {
+                return new Response(false, "Authentication required.");
+            }
+            Long userId = userManager.authenticate(login, password);
+            if (userId == null) {
+                return new Response(false, "Invalid login or password.");
+            }
+            request.setUserId(userId);
+        }
+
+        if (serverMode == ServerMode.SLAVE && classifier.isWrite(commandType)) {
             return new Response(false, "This server is in SLAVE mode. Write commands are forbidden.");
         }
 
@@ -56,8 +61,8 @@ public class ServerPayloadDispatcher {
 
         if (serverMode == ServerMode.MASTER
                 && response.isSuccess()
-                && classifier.isWrite(request.getCommandType())) {
-            replicationManager.replicate(collectionManager.getCollection());
+                && classifier.isWrite(commandType)) {
+            notifier.notifyCollectionChanged();
         }
 
         return response;
