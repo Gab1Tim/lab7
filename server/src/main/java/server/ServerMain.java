@@ -92,6 +92,11 @@ public class ServerMain {
 
         UdpServer udpServer = new UdpServer(port, bufferSize, dispatcher);
 
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Server is shutting down...");
+            udpServer.stop();
+        }));
+
         System.out.println("Server started on port " + port);
         System.out.println("Server mode: " + serverMode);
 
