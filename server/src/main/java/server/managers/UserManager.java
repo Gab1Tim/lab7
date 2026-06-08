@@ -1,5 +1,6 @@
 package server.managers;
 
+import server.auth.TokenManager;
 import server.db.DatabaseManager;
 import server.util.PasswordHasher;
 
@@ -8,14 +9,16 @@ import java.sql.*;
 public class UserManager {
 
     private final DatabaseManager databaseManager;
+    private final TokenManager tokenManager;
 
-    public UserManager(DatabaseManager databaseManager) {
+    public UserManager(DatabaseManager databaseManager, TokenManager tokenManager) {
         this.databaseManager = databaseManager;
+        this.tokenManager = tokenManager;
     }
 
-    public Long register(String login, String password) {
+    public String registerAndGetToken(String login, String password) throws SQLException {
         String hashedPassword = PasswordHasher.hash(password);
-        String sql = "INSERT INTO users (login, password) VALUES (?, ?) RETURNING id";
+        String sql = "INSERT INTO users (login, password, role) VALUES (?, ?, 'USER_JUNIOR') RETURNING id";
 
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -24,15 +27,14 @@ public class UserManager {
             ps.setString(2, hashedPassword);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return rs.getLong("id");
+                long userId = rs.getLong("id");
+                return tokenManager.generateToken(userId);
             }
-        } catch (SQLException e) {
-            System.err.println("Error registering user: " + e.getMessage());
         }
         return null;
     }
 
-    public Long authenticate(String login, String password) {
+    public String authenticate(String login, String password) throws SQLException {
         String hashedPassword = PasswordHasher.hash(password);
         String sql = "SELECT id FROM users WHERE login = ? AND password = ?";
 
@@ -43,10 +45,9 @@ public class UserManager {
             ps.setString(2, hashedPassword);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return rs.getLong("id");
+                long userId = rs.getLong("id");
+                return tokenManager.generateToken(userId);
             }
-        } catch (SQLException e) {
-            System.err.println("Error authenticating user: " + e.getMessage());
         }
         return null;
     }

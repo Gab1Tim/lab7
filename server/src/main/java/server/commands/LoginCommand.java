@@ -3,6 +3,8 @@ package server.commands;
 import common.network.Request;
 import server.managers.UserManager;
 
+import java.sql.SQLException;
+
 public class LoginCommand implements Command {
 
     private final UserManager userManager;
@@ -30,11 +32,17 @@ public class LoginCommand implements Command {
             return new CommandResult(false, "Login and password are required");
         }
 
-        Long userId = userManager.authenticate(login, password);
-        if (userId != null) {
-            return new CommandResult(true, "Authentication successful. User ID: " + userId);
-        } else {
-            return new CommandResult(false, "Invalid login or password");
+        try {
+            String token = userManager.authenticate(login, password);
+            if (token != null) {
+                return new CommandResult(true, "Authentication successful", token);
+            } else {
+                return new CommandResult(false, "Invalid login or password");
+            }
+        } catch (SQLException e) {
+            return new CommandResult(false, "Database error: " + e.getMessage());
+        } catch (Exception e) {
+            return new CommandResult(false, "Error: " + e.getMessage());
         }
     }
 }

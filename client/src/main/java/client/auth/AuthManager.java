@@ -3,6 +3,7 @@ package client.auth;
 public class AuthManager {
     private static String login;
     private static String password;
+    private static String token;
     private static boolean authenticated = false;
 
     public static void setCredentials(String login, String password) {
@@ -18,6 +19,14 @@ public class AuthManager {
         return password;
     }
 
+    public static String getToken() {
+        return token;
+    }
+
+    public static void setToken(String token) {
+        AuthManager.token = token;
+    }
+
     public static boolean isAuthenticated() {
         return authenticated;
     }
@@ -29,6 +38,7 @@ public class AuthManager {
     public static void clear() {
         login = null;
         password = null;
+        token = null;
         authenticated = false;
     }
 }

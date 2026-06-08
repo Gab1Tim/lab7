@@ -2,12 +2,16 @@ package server;
 
 import common.config.AppConfig;
 import common.network.CommandType;
+import server.auth.PermissionManager;
+import server.auth.TokenManager;
 import server.commands.*;
 import server.connection.RequestHandler;
 import server.connection.UdpServer;
 import server.db.DatabaseManager;
 import server.managers.*;
 import server.replication.*;
+
+import java.sql.SQLException;
 
 public class ServerMain {
     public static void main(String[] args) {
@@ -22,13 +26,23 @@ public class ServerMain {
         String dbUser = config.getString("db.user");
         String dbPassword = config.getString("db.password");
         String dbSchema = config.getString("db.schema");
-        DatabaseManager dbManager = new DatabaseManager(dbUrl, dbUser, dbPassword, dbSchema);
+        String adminPassword = config.getString("admin.default.password");
+
+        DatabaseManager dbManager = new DatabaseManager(dbUrl, dbUser, dbPassword, dbSchema, adminPassword);
         dbManager.initializeDatabase();
 
-        DatabaseCollectionManager dbCollectionManager = new DatabaseCollectionManager(dbManager);
-        UserManager userManager = new UserManager(dbManager);
+        TokenManager tokenManager = new TokenManager(dbManager);
+        PermissionManager permissionManager = new PermissionManager();
 
-        CollectionManager collectionManager = new CollectionManager(dbCollectionManager.loadCollection());
+        DatabaseCollectionManager dbCollectionManager = new DatabaseCollectionManager(dbManager);
+        UserManager userManager = new UserManager(dbManager, tokenManager);
+
+        CollectionManager collectionManager;
+        try {
+            collectionManager = new CollectionManager(dbCollectionManager.loadCollection());
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load collection from database", e);
+        }
 
         CommandManager commandManager = new CommandManager();
 
@@ -60,6 +74,10 @@ public class ServerMain {
                 new LoginCommand(userManager));
         commandManager.registerCommand(CommandType.REGISTER,
                 new RegisterCommand(userManager));
+        commandManager.registerCommand(CommandType.SHOW_USERS,
+                new ShowUsersCommand(dbManager));
+        commandManager.registerCommand(CommandType.CHANGE_USER_ROLE,
+                new ChangeUserRoleCommand(dbManager));
 
         CommandTypeClassifier classifier = new CommandTypeClassifier();
         RequestHandler requestHandler = new RequestHandler(commandManager);
@@ -70,7 +88,8 @@ public class ServerMain {
                 requestHandler,
                 serverMode,
                 classifier,
-                userManager,
+                tokenManager,
+                permissionManager,
                 notifier
         );
 
@@ -85,10 +104,6 @@ public class ServerMain {
             listenerThread.start();
             System.out.println("Replication listener started.");
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Server is shutting down.");
-        }));
 
         UdpServer udpServer = new UdpServer(port, bufferSize, dispatcher);
 

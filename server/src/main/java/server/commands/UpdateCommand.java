@@ -5,6 +5,8 @@ import common.network.Request;
 import server.managers.CollectionManager;
 import server.managers.DatabaseCollectionManager;
 
+import java.sql.SQLException;
+
 public class UpdateCommand implements Command {
     private final CollectionManager collectionManager;
     private final DatabaseCollectionManager dbCollectionManager;
@@ -43,6 +45,8 @@ public class UpdateCommand implements Command {
             } else {
                 return new CommandResult(false, "Update failed. Check id and ownership.");
             }
+        } catch (SQLException e) {
+            return new CommandResult(false, "Database error: " + e.getMessage());
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

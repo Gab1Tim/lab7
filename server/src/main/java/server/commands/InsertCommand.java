@@ -5,6 +5,8 @@ import common.network.Request;
 import server.managers.CollectionManager;
 import server.managers.DatabaseCollectionManager;
 
+import java.sql.SQLException;
+
 public class InsertCommand implements Command {
     private final CollectionManager collectionManager;
     private final DatabaseCollectionManager dbCollectionManager;
@@ -43,6 +45,11 @@ public class InsertCommand implements Command {
             } else {
                 return new CommandResult(false, "Failed to insert organization.");
             }
+        } catch (SQLException e) {
+            if (e.getMessage().contains("duplicate key") && e.getMessage().contains("organizations_key_key")) {
+                return new CommandResult(false, "Key already exists. Please choose a different key.");
+            }
+            return new CommandResult(false, "Database error: " + e.getMessage());
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

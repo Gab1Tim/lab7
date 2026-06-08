@@ -15,6 +15,7 @@ public class Request implements Serializable {
     private String login;
     private String password;
     private Long userId;
+    private String token;
 
     public Request(CommandType commandType) {
         this.commandType = commandType;
@@ -78,5 +79,13 @@ public class Request implements Serializable {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

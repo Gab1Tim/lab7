@@ -4,9 +4,9 @@ import client.auth.AuthManager;
 import client.managers.InputManager;
 
 public class RegisterCommand implements Command {
-    private final java.util.function.BiFunction<String, String, Boolean> registerAction;
+    private final java.util.function.Function<String[], common.network.Response> registerAction;
 
-    public RegisterCommand(java.util.function.BiFunction<String, String, Boolean> registerAction) {
+    public RegisterCommand(java.util.function.Function<String[], common.network.Response> registerAction) {
         this.registerAction = registerAction;
     }
 
@@ -35,13 +35,19 @@ public class RegisterCommand implements Command {
         }
 
         AuthManager.setCredentials(login, password);
-        boolean success = registerAction.apply(login, password);
-        if (success) {
-            AuthManager.setAuthenticated(true);
-            System.out.println("Registration successful.");
+        common.network.Response response = registerAction.apply(new String[]{login, password});
+        if (response.isSuccess()) {
+            if (response.getToken() != null && !response.getToken().isEmpty()) {
+                AuthManager.setToken(response.getToken());
+                AuthManager.setAuthenticated(true);
+                System.out.println("Registration successful.");
+            } else {
+                AuthManager.clear();
+                System.out.println("Registration failed. No token received.");
+            }
         } else {
             AuthManager.clear();
-            System.out.println("Registration failed.");
+            System.out.println(response.getMessage());
         }
     }
 }

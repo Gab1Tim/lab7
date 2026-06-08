@@ -14,7 +14,7 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+
 
 public class UdpServer {
     private final int port;
@@ -131,23 +131,10 @@ public class UdpServer {
     }
 
     private void stopPoolsAndChannels() {
-
-        readPool.shutdown();
-        processPool.shutdown();
-        sendPool.shutdown();
-        try {
-            if (!readPool.awaitTermination(5, TimeUnit.SECONDS)) readPool.shutdownNow();
-            if (!processPool.awaitTermination(5, TimeUnit.SECONDS)) processPool.shutdownNow();
-            if (!sendPool.awaitTermination(5, TimeUnit.SECONDS)) sendPool.shutdownNow();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        try {
-            if (selector != null) selector.close();
-        } catch (IOException ignored) {}
-        try {
-            if (channel != null) channel.close();
-        } catch (IOException ignored) {}
+        readPool.shutdownNow();
+        processPool.shutdownNow();
+        sendPool.shutdownNow();
+        try { selector.close(); } catch (Exception ignored) {}
+        try { channel.close(); } catch (Exception ignored) {}
     }
 }

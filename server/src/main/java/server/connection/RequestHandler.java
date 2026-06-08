@@ -14,6 +14,10 @@ public class RequestHandler {
 
     public Response handle(Request request) {
         CommandResult result = commandManager.execute(request);
-        return new Response(result.isSuccess(), result.getMessage());
+        Response response = new Response(result.isSuccess(), result.getMessage());
+        if (result.getToken() != null) {
+            response.setToken(result.getToken());
+        }
+        return response;
     }
 }

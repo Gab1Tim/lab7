@@ -4,6 +4,8 @@ import common.network.Request;
 import server.managers.CollectionManager;
 import server.managers.DatabaseCollectionManager;
 
+import java.sql.SQLException;
+
 public class ClearCommand implements Command {
     private final CollectionManager collectionManager;
     private final DatabaseCollectionManager dbCollectionManager;
@@ -33,6 +35,8 @@ public class ClearCommand implements Command {
             int removed = dbCollectionManager.clear(userId);
             collectionManager.clearUser(userId);
             return new CommandResult(true, removed + " organization(s) removed.");
+        } catch (SQLException e) {
+            return new CommandResult(false, "Database error: " + e.getMessage());
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

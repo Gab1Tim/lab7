@@ -14,5 +14,7 @@ public enum CommandType {
     REMOVE_LOWER,
     HELP,
     LOGIN,
-    REGISTER
+    REGISTER,
+    SHOW_USERS,
+    CHANGE_USER_ROLE
 }

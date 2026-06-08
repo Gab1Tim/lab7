@@ -33,20 +33,18 @@ public class Client {
         clientCommandManager.registerCommand(new ExecuteScriptCommand(this));
         clientCommandManager.registerCommand(new ExitCommand());
 
-        clientCommandManager.registerCommand(new LoginCommand((login, password) -> {
+        clientCommandManager.registerCommand(new LoginCommand(credentials -> {
             Request request = new Request(common.network.CommandType.LOGIN);
-            request.setLogin(login);
-            request.setPassword(password);
-            Response response = udpClient.sendAndReceive(request);
-            return response.isSuccess();
+            request.setLogin(credentials[0]);
+            request.setPassword(credentials[1]);
+            return udpClient.sendAndReceive(request);
         }));
 
-        clientCommandManager.registerCommand(new RegisterCommand((login, password) -> {
+        clientCommandManager.registerCommand(new RegisterCommand(credentials -> {
             Request request = new Request(common.network.CommandType.REGISTER);
-            request.setLogin(login);
-            request.setPassword(password);
-            Response response = udpClient.sendAndReceive(request);
-            return response.isSuccess();
+            request.setLogin(credentials[0]);
+            request.setPassword(credentials[1]);
+            return udpClient.sendAndReceive(request);
         }));
     }
 
@@ -113,6 +111,11 @@ public class Client {
 
         Response response = udpClient.sendAndReceive(request);
         System.out.println(response.getMessage());
+
+        if (!response.isSuccess() && response.getMessage().contains("token")) {
+            AuthManager.clear();
+            System.out.println("Session expired. Please login again.");
+        }
     }
 
     private void showHelp() {

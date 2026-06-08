@@ -18,7 +18,7 @@ public class DatabaseCollectionManager {
         this.databaseManager = databaseManager;
     }
 
-    public LinkedHashMap<Integer, Organization> loadCollection() {
+    public LinkedHashMap<Integer, Organization> loadCollection() throws SQLException {
         LinkedHashMap<Integer, Organization> collection = new LinkedHashMap<>();
         String sql = "SELECT id, key, name, coordinate_x, coordinate_y, creation_date, annual_turnover, type, zip_code, owner_id FROM organizations";
 
@@ -55,15 +55,11 @@ public class DatabaseCollectionManager {
 
                 collection.put(key, org);
             }
-
-        } catch (SQLException e) {
-            System.err.println("Error loading collection from database: " + e.getMessage());
         }
-
         return collection;
     }
 
-    public Organization insert(Integer key, Organization org, Long ownerId) {
+    public Organization insert(Integer key, Organization org, Long ownerId) throws SQLException {
         String sql = "INSERT INTO organizations (key, name, coordinate_x, coordinate_y, creation_date, annual_turnover, type, zip_code, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id";
 
         try (Connection conn = databaseManager.getConnection();
@@ -82,7 +78,7 @@ public class DatabaseCollectionManager {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 long generatedId = rs.getLong("id");
-                Organization inserted = new Organization(
+                return new Organization(
                         generatedId,
                         org.getName(),
                         org.getCoordinates(),
@@ -92,37 +88,24 @@ public class DatabaseCollectionManager {
                         org.getOfficialAddress(),
                         ownerId
                 );
-                return inserted;
             }
-
-        } catch (SQLException e) {
-            System.err.println("Error inserting organization: " + e.getMessage());
         }
         return null;
     }
 
-    public boolean update(Long id, Organization newOrg, Long ownerId) {
+    public boolean update(Long id, Organization newOrg, Long ownerId) throws SQLException {
         String checkSql = "SELECT owner_id FROM organizations WHERE id = ?";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
 
             checkPs.setLong(1, id);
             ResultSet rs = checkPs.executeQuery();
-            if (!rs.next()) {
-                return false;
-            }
+            if (!rs.next()) return false;
             long dbOwnerId = rs.getLong("owner_id");
-            if (dbOwnerId != ownerId) {
-                return false;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error checking ownership: " + e.getMessage());
-            return false;
+            if (dbOwnerId != ownerId) return false;
         }
 
         String updateSql = "UPDATE organizations SET name = ?, coordinate_x = ?, coordinate_y = ?, annual_turnover = ?, type = ?, zip_code = ? WHERE id = ?";
-
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(updateSql)) {
 
@@ -134,33 +117,20 @@ public class DatabaseCollectionManager {
             ps.setString(6, newOrg.getOfficialAddress().getZipCode());
             ps.setLong(7, id);
 
-            int affected = ps.executeUpdate();
-            return affected > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error updating organization: " + e.getMessage());
-            return false;
+            return ps.executeUpdate() > 0;
         }
     }
 
-    public boolean remove(Integer key, Long ownerId) {
+    public boolean remove(Integer key, Long ownerId) throws SQLException {
         String checkSql = "SELECT owner_id FROM organizations WHERE key = ?";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
 
             checkPs.setInt(1, key);
             ResultSet rs = checkPs.executeQuery();
-            if (!rs.next()) {
-                return false;
-            }
+            if (!rs.next()) return false;
             long dbOwnerId = rs.getLong("owner_id");
-            if (dbOwnerId != ownerId) {
-                return false;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error checking ownership: " + e.getMessage());
-            return false;
+            if (dbOwnerId != ownerId) return false;
         }
 
         String deleteSql = "DELETE FROM organizations WHERE key = ?";
@@ -168,59 +138,36 @@ public class DatabaseCollectionManager {
              PreparedStatement ps = conn.prepareStatement(deleteSql)) {
 
             ps.setInt(1, key);
-            int affected = ps.executeUpdate();
-            return affected > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error removing organization: " + e.getMessage());
-            return false;
+            return ps.executeUpdate() > 0;
         }
     }
 
-    public int clear(Long ownerId) {
+    public int clear(Long ownerId) throws SQLException {
         String sql = "DELETE FROM organizations WHERE owner_id = ?";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setLong(1, ownerId);
-            int affected = ps.executeUpdate();
-            return affected;
-
-        } catch (SQLException e) {
-            System.err.println("Error clearing user's organizations: " + e.getMessage());
-            return 0;
+            return ps.executeUpdate();
         }
     }
 
-    public boolean removeGreaterKey(Integer referenceKey, Long ownerId) {
+    public boolean removeGreaterKey(Integer referenceKey, Long ownerId) throws SQLException {
         String sql = "DELETE FROM organizations WHERE key > ? AND owner_id = ?";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, referenceKey);
             ps.setLong(2, ownerId);
-            int affected = ps.executeUpdate();
-            return affected > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error removing greater key: " + e.getMessage());
-            return false;
+            return ps.executeUpdate() > 0;
         }
     }
 
-    public int removeLower(Organization reference, Long ownerId) {
+    public int removeLower(Organization reference, Long ownerId) throws SQLException {
         String sql = "DELETE FROM organizations WHERE annual_turnover < ? AND owner_id = ?";
         try (Connection conn = databaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setInt(1, reference.getAnnualTurnover());
             ps.setLong(2, ownerId);
-            int affected = ps.executeUpdate();
-            return affected;
-
-        } catch (SQLException e) {
-            System.err.println("Error removing lower: " + e.getMessage());
-            return 0;
+            return ps.executeUpdate();
         }
     }
 }

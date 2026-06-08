@@ -4,6 +4,8 @@ import common.network.Request;
 import server.managers.CollectionManager;
 import server.managers.DatabaseCollectionManager;
 
+import java.sql.SQLException;
+
 public class RemoveGreaterKeyCommand implements Command {
     private final CollectionManager collectionManager;
     private final DatabaseCollectionManager dbCollectionManager;
@@ -40,6 +42,8 @@ public class RemoveGreaterKeyCommand implements Command {
             } else {
                 return new CommandResult(false, "No elements removed.");
             }
+        } catch (SQLException e) {
+            return new CommandResult(false, "Database error: " + e.getMessage());
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

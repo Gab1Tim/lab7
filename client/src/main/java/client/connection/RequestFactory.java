@@ -16,23 +16,18 @@ public class RequestFactory {
             case "show":
                 request = new Request(CommandType.SHOW);
                 break;
-
             case "info":
                 request = new Request(CommandType.INFO);
                 break;
-
             case "clear":
                 request = new Request(CommandType.CLEAR);
                 break;
-
             case "min_by_name":
                 request = new Request(CommandType.MIN_BY_NAME);
                 break;
-
             case "print_unique_annual_turnover":
                 request = new Request(CommandType.PRINT_UNIQUE_ANNUAL_TURNOVER);
                 break;
-
             case "insert": {
                 request = new Request(CommandType.INSERT);
                 int key = InputManager.readInt("Enter key: ");
@@ -41,7 +36,6 @@ public class RequestFactory {
                 request.setOrganization(organization);
                 break;
             }
-
             case "update": {
                 request = new Request(CommandType.UPDATE);
                 long id = InputManager.readInt("Enter id: ");
@@ -50,28 +44,24 @@ public class RequestFactory {
                 request.setOrganization(organization);
                 break;
             }
-
             case "remove_key": {
                 request = new Request(CommandType.REMOVE_KEY);
                 int key = InputManager.readInt("Enter key to remove: ");
                 request.setKey(key);
                 break;
             }
-
             case "remove_greater_key": {
                 request = new Request(CommandType.REMOVE_GREATER_KEY);
                 int key = InputManager.readInt("Enter reference key: ");
                 request.setKey(key);
                 break;
             }
-
             case "remove_lower": {
                 request = new Request(CommandType.REMOVE_LOWER);
                 Organization organization = InputManager.readOrganization();
                 request.setOrganization(organization);
                 break;
             }
-
             case "filter_greater_than_type": {
                 request = new Request(CommandType.FILTER_GREATER_THAN_TYPE);
                 String typeStr = InputManager.readLine("Enter organization type: ");
@@ -84,26 +74,38 @@ public class RequestFactory {
                 }
                 break;
             }
-
             case "help":
                 request = new Request(CommandType.HELP);
                 break;
-
             case "login":
                 request = new Request(CommandType.LOGIN);
                 break;
-
             case "register":
                 request = new Request(CommandType.REGISTER);
                 break;
-
+            case "show_users":
+                request = new Request(CommandType.SHOW_USERS);
+                break;
+            case "change_user_role": {
+                request = new Request(CommandType.CHANGE_USER_ROLE);
+                String targetLogin = InputManager.readLine("Enter login of user to change: ");
+                String newRole = InputManager.readLine("Enter new role (ADMIN, USER_TEAMLEAD, USER_JUNIOR): ");
+                request.setLogin(targetLogin);
+                request.setPassword(newRole);
+                break;
+            }
             default:
                 return null;
         }
 
         if (AuthManager.isAuthenticated()) {
-            request.setLogin(AuthManager.getLogin());
-            request.setPassword(AuthManager.getPassword());
+            String token = AuthManager.getToken();
+            if (token != null && !token.isEmpty()) {
+                request.setToken(token);
+            } else {
+                request.setLogin(AuthManager.getLogin());
+                request.setPassword(AuthManager.getPassword());
+            }
         }
 
         return request;

@@ -5,6 +5,8 @@ import common.network.Request;
 import server.managers.CollectionManager;
 import server.managers.DatabaseCollectionManager;
 
+import java.sql.SQLException;
+
 public class RemoveLowerCommand implements Command {
     private final CollectionManager collectionManager;
     private final DatabaseCollectionManager dbCollectionManager;
@@ -37,6 +39,8 @@ public class RemoveLowerCommand implements Command {
             int removed = dbCollectionManager.removeLower(reference, userId);
             collectionManager.removeLower(reference, userId);
             return new CommandResult(true, removed + " elements removed.");
+        } catch (SQLException e) {
+            return new CommandResult(false, "Database error: " + e.getMessage());
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

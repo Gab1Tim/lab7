@@ -4,6 +4,8 @@ import common.network.Request;
 import server.managers.CollectionManager;
 import server.managers.DatabaseCollectionManager;
 
+import java.sql.SQLException;
+
 public class RemoveKeyCommand implements Command {
     private final CollectionManager collectionManager;
     private final DatabaseCollectionManager dbCollectionManager;
@@ -40,6 +42,8 @@ public class RemoveKeyCommand implements Command {
             } else {
                 return new CommandResult(false, "Remove failed. Check key and ownership.");
             }
+        } catch (SQLException e) {
+            return new CommandResult(false, "Database error: " + e.getMessage());
         } catch (Exception e) {
             return new CommandResult(false, "Error: " + e.getMessage());
         }

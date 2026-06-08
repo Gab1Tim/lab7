@@ -1,5 +1,7 @@
 package server.db;
 
+import server.util.PasswordHasher;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -10,12 +12,14 @@ public class DatabaseManager {
     private final String user;
     private final String password;
     private final String schema;
+    private final String adminPassword;
 
-    public DatabaseManager(String url, String user, String password, String schema) {
+    public DatabaseManager(String url, String user, String password, String schema, String adminPassword) {
         this.url = url;
         this.user = user;
         this.password = password;
         this.schema = schema;
+        this.adminPassword = adminPassword;
         try {
             Class.forName("org.postgresql.Driver");
         } catch (ClassNotFoundException e) {
@@ -32,32 +36,40 @@ public class DatabaseManager {
     public void initializeDatabase() {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
+
             stmt.execute("SET SEARCH_PATH TO " + schema);
 
             stmt.execute("""
-                        CREATE TABLE IF NOT EXISTS users (
-                            id       BIGSERIAL PRIMARY KEY,
-                            login    VARCHAR(50) UNIQUE NOT NULL,
-                            password TEXT NOT NULL
-                        )
-                    """);
+                CREATE TABLE IF NOT EXISTS users (
+                    id            BIGSERIAL PRIMARY KEY,
+                    login         VARCHAR(50) UNIQUE NOT NULL,
+                    password      TEXT NOT NULL,
+                    role          VARCHAR(50) NOT NULL DEFAULT 'USER_JUNIOR',
+                    token         VARCHAR(255),
+                    token_expiry  TIMESTAMP
+                )
+            """);
 
             stmt.execute("CREATE SEQUENCE IF NOT EXISTS org_id_seq START 1");
 
             stmt.execute("""
-                        CREATE TABLE IF NOT EXISTS organizations (
-                            id              BIGINT PRIMARY KEY DEFAULT nextval('org_id_seq'),
-                            key             INTEGER NOT NULL UNIQUE,
-                            name            TEXT NOT NULL,
-                            coordinate_x    DOUBLE PRECISION NOT NULL,
-                            coordinate_y    INTEGER NOT NULL,
-                            creation_date   TIMESTAMP NOT NULL DEFAULT NOW(),
-                            annual_turnover INTEGER NOT NULL CHECK (annual_turnover > 0),
-                            type            TEXT,
-                            zip_code        VARCHAR(20),
-                            owner_id        BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE
-                        )
-                    """);
+                CREATE TABLE IF NOT EXISTS organizations (
+                    id              BIGINT PRIMARY KEY DEFAULT nextval('org_id_seq'),
+                    key             INTEGER NOT NULL UNIQUE,
+                    name            TEXT NOT NULL,
+                    coordinate_x    DOUBLE PRECISION NOT NULL,
+                    coordinate_y    INTEGER NOT NULL,
+                    creation_date   TIMESTAMP NOT NULL DEFAULT NOW(),
+                    annual_turnover INTEGER NOT NULL CHECK (annual_turnover > 0),
+                    type            TEXT,
+                    zip_code        VARCHAR(20),
+                    owner_id        BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+                )
+            """);
+
+            String hashedAdminPassword = PasswordHasher.hash(adminPassword);
+            stmt.execute("INSERT INTO users (login, password, role) VALUES ('admin', '"
+                    + hashedAdminPassword + "', 'ADMIN') ON CONFLICT (login) DO NOTHING");
 
             System.out.println("Database initialized successfully in schema " + schema);
         } catch (SQLException e) {
